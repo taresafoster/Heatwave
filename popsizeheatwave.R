@@ -5,6 +5,7 @@ library(tidyverse)
 library(cowplot)
 library(ggpubr)
 library(dplyr)
+library(car) #in order to run type 2 anovas
 
 #Tess's ggplot theme
 theme_tess <- function () { 
@@ -100,42 +101,51 @@ ggsave(file="Figures/Taresapopsizefigure.pdf", p, width = 22, height = 22, units
 #### ANOVAs
 
 #TWO-way ANOVAs
-  #Week 0
- week0data <- data %>%
+
+##TESS NOTE: For all weeks I changed the way this is set up but it does basically the same thing as you had
+#but now it makes a linear model and then runs an anova on that model
+#and with the "car" package you can run a Type 2 sums of squares ANOVA which is preferred (look into why)
+
+#Week 0
+week0data <- data %>%
   filter(weeks_since_heatwave == "0")
-  
- week0anova <- aov(alive ~ adapted_temp * heatwave, data = week0data)
-  
- summary(week0anova)
+
+lm_week0<-lm(alive~adapted_temp*heatwave,data=week0data)
+Anova(lm_week0,type="2")
+#signficant interaction
 
   #Week 2
- week2data <- data %>%
+week2data <- data %>%
     filter(weeks_since_heatwave == "2")
   
- week2anova <- aov(alive ~ adapted_temp * heatwave, data = week2data)
-  
- summary(week2anova)
+lm_week2<-lm(alive~adapted_temp*heatwave,data=week2data)
+Anova(lm_week2,type="2")
+#significant interaction
   
   #Week 6
- week6data <- data %>%
+week6data <- data %>%
     filter(weeks_since_heatwave == "6")
   
- week6anova <- aov(alive ~ adapted_temp * heatwave, data = week6data)
-  
- summary(week6anova)
+lm_week6<-lm(alive~adapted_temp*heatwave,data=week6data)
+Anova(lm_week6,type="2")
+#significant interaction
   
    #Week 12
- week12data <- data %>%
+week12data <- data %>%
     filter(weeks_since_heatwave == "0")
-  
- week12anova <- aov(alive ~ adapted_temp * heatwave, data = week12data)
-  
- summary(week12anova)
+
+lm_week12<-lm(alive~adapted_temp*heatwave,data=week12data)
+Anova(lm_week12,type="2")
+#significant interaction
+
 
 #ONE-way ANOVAs - only treatment data 
+
+#TESS SAYS: for weeks 2, 6 and 12 you had it coded so it was actually only keeping the NO heatave (control) data (heatwave == "0")- i changed it so it's just the heatwave data now
+#TESS SAYS: Taresa I'll let you change the way the ANOVAS are run for the ones below to match what I did above (linear model then type 2 anova using "Anova" from the car package)
   
   #Week 0
- t_week0data <- data %>%
+t_week0data <- data %>%
     filter(weeks_since_heatwave == "0",
           heatwave == "1")
  
@@ -146,7 +156,7 @@ ggsave(file="Figures/Taresapopsizefigure.pdf", p, width = 22, height = 22, units
   #Week 2
  t_week2data <- data %>%
    filter(weeks_since_heatwave == "2",
-          heatwave == "0")
+          heatwave == "1")
  
  t_week2anova <- aov(alive ~ adapted_temp, data = t_week2data)
  
@@ -155,7 +165,7 @@ ggsave(file="Figures/Taresapopsizefigure.pdf", p, width = 22, height = 22, units
   #Week 6
  t_week6data <- data %>%
    filter(weeks_since_heatwave == "6",
-          heatwave == "0")
+          heatwave == "1")
  
  t_week6anova <- aov(alive ~ adapted_temp, data = t_week6data)
  
@@ -164,7 +174,7 @@ ggsave(file="Figures/Taresapopsizefigure.pdf", p, width = 22, height = 22, units
   #Week 12
  t_week12data <- data %>%
    filter(weeks_since_heatwave == "12",
-          heatwave == "0")
+          heatwave == "1")
  
  t_week12anova <- aov(alive ~ adapted_temp, data = t_week12data)
 

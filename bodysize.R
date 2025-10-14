@@ -5,6 +5,8 @@ library(tidyverse)
 library(cowplot)
 library(ggpubr)
 library(dplyr)
+library(car) #for running type 2 anovas
+library(emmeans) #for running post-hoc tests on type 2 anovas
 
 #Tess's ggplot theme
 theme_tess <- function () { 
@@ -78,10 +80,14 @@ ggsave(file="Figures/Taresabodysizefigure.pdf", p, width = 22, height = 22, unit
 
 ####ANOVA
 
-  #TWO-way ANOVA
-  bodysizeanova <- aov(weight ~ adapted_temp * sex, data = data)
+#TWO-way ANOVA
+#TESS SAYS: changed this to the way I do ANOVAS (see popsizeheatave file for explanation)
+
+lm_bodysize <- lm(weight ~ adapted_temp * sex, data = data)
+Anova(lm_bodysize, type="2")
+#significant interaction
   
-  summary(bodysizeanova)
-  
-  #Tukey test
-  TukeyHSD(bodysizeanova)
+#Tukey test
+#TESS SAYS: this is how you run a tukey test when you do your anovas as above (emmeans package)
+
+emmeans(lm_bodysize, pairwise ~ adapted_temp | sex, adjust = "tukey")
