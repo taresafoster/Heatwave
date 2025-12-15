@@ -21,7 +21,11 @@ theme_tess <- function () {
 }
 
 #get data in
+<<<<<<< HEAD
 data <-read.csv("./data/heatwavepopulationwk18.csv",stringsAsFactors = FALSE,
+=======
+data <-read.csv("./data/heatwavepopulationwk12.csv",stringsAsFactors = FALSE,
+>>>>>>> 990a70132cc741136d2dd1f368d96ec8ce3456ec
                 strip.white = TRUE, na.strings = c("NA",""))
  
 #### MAIN PLOT
@@ -49,10 +53,17 @@ data <-read.csv("./data/heatwavepopulationwk18.csv",stringsAsFactors = FALSE,
   
   # Convert weeks_since_heatwave to a factor with levels
   data$weeks_since_heatwave <- factor(data$weeks_since_heatwave, 
+<<<<<<< HEAD
                                       levels = c( "0", "pad2", "2", "pad3", "6", "pad6", "12", "pad12", "18"))
   
   summary_data$weeks_since_heatwave <- factor(summary_data$weeks_since_heatwave, 
                                               levels = c( "0", "pad2", "2", "pad3", "6", "pad6", "12", "pad12", "18"))
+=======
+                                      levels = c( "0", "pad2", "2", "pad3", "6", "pad6", "12"))
+  
+  summary_data$weeks_since_heatwave <- factor(summary_data$weeks_since_heatwave, 
+                                              levels = c( "0", "pad2", "2", "pad3", "6", "pad6", "12"))
+>>>>>>> 990a70132cc741136d2dd1f368d96ec8ce3456ec
   
   #create plot
   p <- ggplot(summary_data, aes(x = weeks_since_heatwave, y = mean, color = adapted_temp, shape = heatwave, group = group_id)) +
@@ -85,17 +96,28 @@ data <-read.csv("./data/heatwavepopulationwk18.csv",stringsAsFactors = FALSE,
     #add x- and y-axis labels
     xlab("Weeks since heatwave") +
     ylab("Population size") +
+<<<<<<< HEAD
     scale_x_discrete (breaks = c("0", "2", "6", "12", "18"), labels = c("0", "2", "6", "12", "18")) +
+=======
+    scale_x_discrete (breaks = c("0", "2", "6", "12"), labels = c("0", "2", "6", "12")) +
+>>>>>>> 990a70132cc741136d2dd1f368d96ec8ce3456ec
     theme_tess()
   
   quartz()         # Opens a new plotting window
   plot(1:10)       # Your plot appears in that window
   print(p) #this opens the plot in a new window
   
+<<<<<<< HEAD
   #windows();p #enables plot to open on a PC
 
 #saves the plot
 ggsave(file="./figures/Taresapopsizefigure.pdf", p, width = 30, height = 18, units = "cm") #close the file before you save
+=======
+  windows();p #enables plot to open on a PC
+
+#saves the plot
+ggsave(file="Figures/Taresapopsizefigure.pdf", p, width = 22, height = 22, units = "cm") #close the file before you save
+>>>>>>> 990a70132cc741136d2dd1f368d96ec8ce3456ec
 
 
 #### ANOVAs
