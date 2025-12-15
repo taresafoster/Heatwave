@@ -84,7 +84,7 @@ p_m2w <- ggplot(male_2weeks, aes(x = dry_weight, y = survival_twoweeks_binomial)
   scale_y_continuous(breaks = c(0, 1), labels = c("Died", "Survived")) +
   labs(title = "Males",
        x = "Body size (g)", 
-       y = "Survival") +
+       y = "") +
   theme_tess()
 
 windows();p_m2w
@@ -101,13 +101,18 @@ ggsave(filename = "./figures/Taresabodysizesurvival.pdf",
 
 # Taresa says: I'm not too happy with the size of text and thickness of the lines
 # Please let me know if you think anything should be bigger or smaller and i can rework it
+#TESS SAYS: i played around with the aesthetics of this plot, let me know what you think
 
 # I also get warning messages when i plot this but I think that that's coming from my
 # slope-less GLM. 
 
 # Should I make "A" and "B" panel labels for this one too?
+#TESS SAYS: yes!
 
-#.-._.-._.-._.-._.-._.-._.- Immediate survival -._.-._.-._.-._.-._.-._.-.-#
+
+#### IMMEDIATE SURVIVAL ####
+
+# TESS SAYS: repeat everything above here for the supp mat
 
 #-------------- Females ---------------#
 
