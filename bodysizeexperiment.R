@@ -4,71 +4,90 @@ library(cowplot)
 library(ggpubr)
 library(dplyr)
 
-theme_tess_3 <- function () { 
-  theme_cowplot()+ #cowplot is an existing nice looking plot type thing
+theme_tess <- function () { 
+  theme_cowplot()+
     theme(axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)))+
     theme(axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)))+
-    theme(axis.text.y=element_text(size=15))+
+    theme(axis.text.x=element_text(size=20))+
+    theme(axis.text.y=element_text(size=20))+
     theme(axis.title.x=element_text(size=20))+
     theme(axis.title.y=element_text(size=20))+
     theme(plot.title = element_text(hjust = 0.5,size=20))+
     theme(axis.title.y=element_text(size=20))
-  }
+}
 
 data <-read.csv("./data/bodysizeexperiment.csv",stringsAsFactors = FALSE,
                 strip.white = TRUE, na.strings = c("NA",""))
 
-#.-._.-._.-._.-._.-._.-._.- 2 week survival -._.-._.-._.-._.-._.-._.-.-#
+data <- data%>%
+  mutate(survival_twoweeks_binomial = 
+           ifelse(survival_twoweeks == "s", 1, 0))
+
+data <- data%>%
+  mutate(survival_immeidate_binomial = 
+           ifelse(survival_immediate == "s", 1, 0))
+
+
+#### 2 WEEK SURVIVAL ####
 
 #-------------- Females  ---------------#
 
 female_2weeks <- data %>%
   filter(sex == "f") %>%
-  select(survival_twoweeks, dry_weight)
+  select(survival_twoweeks_binomial, dry_weight)
 
-female_2weeks <- female_2weeks %>%
-  mutate(survival_twoweeks_binomial = ifelse(survival_twoweeks == "s", 1, 0))
 
 #GLM
 model_1 <- glm(survival_twoweeks_binomial ~ dry_weight, 
                data = female_2weeks,
                family = binomial)
 
+anova(model_1, test = "Chisq")
+#extremely significant, as expected
+
+
 #Plot
-p_f2w <- ggplot(female_2weeks, aes(x = dry_weight, y = survival_twoweeks_binomial)) +
-  geom_jitter(height = 0.03, width = 0, alpha = 0.5) +
-  geom_smooth(method = "glm", method.args = list(family = "binomial"), se = TRUE, color = "black") +
-  scale_y_continuous(breaks = c(0, 1), labels = c("Dead", "Alive")) +
+p_f2w <- ggplot(female_2weeks, 
+                aes(x = dry_weight, y = survival_twoweeks_binomial)) +
+  geom_jitter(height = 0.01, width = 0, size=3,shape=16, colour="black") +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"),
+              se=FALSE, color = "black") +
+  scale_y_continuous(breaks = c(0, 1), labels = c("Died", "Survived")) +
   labs(title = "Females",
        x = "Body size (g)", 
        y = "Survival") +
-  theme_tess_3()
+  theme_tess()
+
+windows();p_f2w
 
 #-------------- Males  ---------------#
 
 #filter original data set
 male_2weeks <- data %>%
   filter(sex == "m") %>%
-  select(survival_twoweeks, dry_weight)
-
-#mutate to make survival a binomial response
-male_2weeks <- male_2weeks %>%
-  mutate(survival_twoweeks_binomial = ifelse(survival_twoweeks == "s", 1, 0))
+  select(survival_twoweeks_binomial, dry_weight)
 
 #GLM
 model_2 <- glm(survival_twoweeks_binomial ~ dry_weight, 
                data = male_2weeks,
                family = binomial)
 
+anova(model_2, test = "Chisq")
+#extremely significant, as expected
+
+
 #Create plot
 p_m2w <- ggplot(male_2weeks, aes(x = dry_weight, y = survival_twoweeks_binomial)) +
-  geom_jitter(height = 0.03, width = 0, alpha = 0.5) +
-  geom_smooth(method = "glm", method.args = list(family = "binomial"), se = TRUE, color = "black") +
-  scale_y_continuous(breaks = c(0, 1), labels = c("Dead", "Alive")) +
+  geom_jitter(height = 0.01, width = 0,colour="black",size=3) +
+  geom_smooth(method = "glm", method.args = list(family = "binomial"), 
+              se = FALSE, color = "black") +
+  scale_y_continuous(breaks = c(0, 1), labels = c("Died", "Survived")) +
   labs(title = "Males",
        x = "Body size (g)", 
        y = "Survival") +
-  theme_tess_3()
+  theme_tess()
+
+windows();p_m2w
 
 #-------------- Combined plot ---------------#
 
@@ -78,7 +97,7 @@ combined <- plot_grid(p_f2w, p_m2w,
 
 #save the final plot
 ggsave(filename = "./figures/Taresabodysizesurvival.pdf",
-       plot = combined, width = 22, height = 12, units = "cm", dpi = 300)
+       plot = combined, width = 35, height = 19, units = "cm", dpi = 300)
 
 # Taresa says: I'm not too happy with the size of text and thickness of the lines
 # Please let me know if you think anything should be bigger or smaller and i can rework it
@@ -111,7 +130,7 @@ p_fi <- ggplot(female_immediate, aes(x = dry_weight, y = survival_immediate_bino
   scale_y_continuous(breaks = c(0, 1), labels = c("Dead", "Alive")) +
   labs(x = "Body size (g)", 
        y = "Survival") + 
-  theme_tess_3()
+  theme_tess()
 
 #-------------- Males ---------------#
 
