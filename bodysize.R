@@ -200,25 +200,14 @@ ggsave(filename = "./figures/Taresabodysizebeforeafter.pdf",
 
 #------Stats------#
 
-#Two-way ANOVA
-lm_bodysize <- lm(weight ~ adapted_temp * sex, data = data)
+#TESS SAYS: you were missing heatwave in your anova - I added it
+#Three way anova
+lm_bodysize <- lm(weight ~ adapted_temp * sex*heatwave, data = data)
 Anova(lm_bodysize, type="2")
-#significant interaction
-
-#Tukey test
-emmeans(lm_bodysize, pairwise ~ adapted_temp | sex, adjust = "tukey")
 
 
-####ANOVA
+#significant interaction between sex and heatwave
+#strong effect of sex (females larger), significant effect of adapted temp (cold adapted larger)
+#let's discuss what this means
 
-#TWO-way ANOVA
-#TESS SAYS: changed this to the way I do ANOVAS (see popsizeheatave file for explanation)
 
-lm_bodysize <- lm(weight ~ adapted_temp * sex, data = data)
-Anova(lm_bodysize, type="2")
-#significant interaction
-  
-#Tukey test
-#TESS SAYS: this is how you run a tukey test when you do your anovas as above (emmeans package)
-
-emmeans(lm_bodysize, pairwise ~ adapted_temp | sex, adjust = "tukey")
