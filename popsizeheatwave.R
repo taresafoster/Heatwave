@@ -5,7 +5,7 @@ library(tidyverse)
 library(cowplot)
 library(ggpubr)
 library(dplyr)
-library(car) #in order to run type 2 anovas
+library(car)
 
 #Tess's ggplot theme
 theme_tess <- function () { 
@@ -20,25 +20,21 @@ theme_tess <- function () {
     theme(axis.title.y=element_text(size=20))
 }
 
-#get data in
-
-#TESS NOTE: YOU SHOULD ONLY HAVE ONE DATASET WITH ALL THE DATA, NOT TWO. I CHANGED IT
+#get data 
 data <-read.csv("./data/heatwavepopulation.csv",stringsAsFactors = FALSE,
                 strip.white = TRUE, na.strings = c("NA",""))
 
  
 #### MAIN PLOT
 
-#make heatwave and adpated_temp factors
+#make heatwave, adapted_temp, and weeks_since_heatwave factors
 data$heatwave <- factor(data$heatwave, levels = c(0, 1))
   
-data$adapted_temp<-as.factor(data$adapted_temp) #make adapted temp into a factor so we can color code by it in the plot
+data$adapted_temp<- factor(data$adapted_temp,
+                           levels = c("25", "30", "35"))
 
 data$weeks_since_heatwave <- factor(data$weeks_since_heatwave, 
                                     levels = c( "0", "2", "6", "12", "18"))
- 
- # controls <- data %>%
- #   filter(heatwave == "0", weeks_since_heatwave %in% c("0", "2", "6", "12"))
   
 #calculate summary stats
   summary_data <- data %>%
@@ -53,8 +49,6 @@ data$weeks_since_heatwave <- factor(data$weeks_since_heatwave,
   
 
 #create plot
-#TESS SAYS: i reduced the jitter so its easier to see what's going on
- 
 p <- ggplot(summary_data, aes(x = weeks_since_heatwave, y = mean, 
                               color = adapted_temp, shape = heatwave, 
                               group = group_id)) +
@@ -81,11 +75,14 @@ p <- ggplot(summary_data, aes(x = weeks_since_heatwave, y = mean,
     ylab("Population size (live adult beetles)") +
     scale_x_discrete (breaks = c("0", "2", "6", "12", "18"), 
                       labels = c("0", "2", "6", "12", "18")) +
-    scale_x_discrete (breaks = c("0", "2", "6", "12","18"), 
-                      labels = c("0", "2", "6", "12","18")) +
-    theme_tess()
+    theme_tess() +
+  theme(
+    legend.title = element_text(size = 16),
+    legend.text  = element_text(size = 15),
+    legend.key.size = unit(0.6, "cm"),
+    legend.spacing.y = unit(0.4, "cm"))
 
-windows();p #enables plot to open on a PC
+#windows();p #enables plot to open on a PC
   
 quartz()         # Opens a new plotting window
 plot(1:10)       # Your plot appears in that window
@@ -99,11 +96,23 @@ ggsave(file="./figures/Taresapopsizefigure.pdf", p,
 
 #### ANOVAs
 
-#TWO-way ANOVAs
+#Global model
+#make a new column with specific population ids called "pop_id"
+data <- data%>%
+  mutate(pop_id = paste(adapted_temp,heatwave,population_id, sep = "_"))
 
-##TESS NOTE: For all weeks I changed the way this is set up but it does basically the same thing as you had
-#but now it makes a linear model and then runs an anova on that model
-#and with the "car" package you can run a Type 2 sums of squares ANOVA which is preferred (look into why)
+#check that n = 60 for pop_id
+n_distinct(data$pop_id)
+
+lmmglobal <- lmer(alive ~ adapted_temp * heatwave * weeks_since_heatwave + (1|pop_id),data = data)
+Anova(lmmglobal, type = 2)
+#significant three-way interaction
+
+#TARESA SAYS: when I initially ran my global model during our meeting I had not converted weeks_since_heatwave to
+#a factor and the three-way interaction was not significant. When I convert it to a factor it is significant. I am
+#assuming it is supposed to be a factor and therefore the three-way is significant
+
+#TWO-way ANOVAs
 
 #Week 0
 week0data <- data %>%
@@ -148,43 +157,65 @@ Anova(lm_week18,type="2")
 
 #ONE-way ANOVAs - only treatment data 
 
-#TESS SAYS: for weeks 2, 6 and 12 you had it coded so it was actually only keeping the NO heatave (control) data (heatwave == "0")- i changed it so it's just the heatwave data now
-#TESS SAYS: Taresa I'll let you change the way the ANOVAS are run for the ones below to match what I did above (linear model then type 2 anova using "Anova" from the car package)
-  
 #Week 0
 t_week0data <- data %>%
-    filter(weeks_since_heatwave == "0",
-          heatwave == "1")
- 
-t_week0anova <- aov(alive ~ adapted_temp, data = t_week0data)
+  filter(weeks_since_heatwave == "0",
+    heatwave == 1)
 
-summary(t_week0anova)
- 
+lm_week0 <- lm(alive ~ adapted_temp, data = t_week0data)
+Anova(lm_week0, type = "II")
+#significant interaction
+
 #Week 2
  t_week2data <- data %>%
    filter(weeks_since_heatwave == "2",
-          heatwave == "1")
+          heatwave == 1)
  
- t_week2anova <- aov(alive ~ adapted_temp, data = t_week2data)
- 
- summary(t_week2anova)
+ lm_week2 <- lm(alive ~ adapted_temp, data = t_week2data)
+ Anova(lm_week2, type = "II")
+ #significant interaction
  
   #Week 6
  t_week6data <- data %>%
    filter(weeks_since_heatwave == "6",
-          heatwave == "1")
+          heatwave == 1)
  
- t_week6anova <- aov(alive ~ adapted_temp, data = t_week6data)
- 
- summary(t_week6anova)
+ lm_week6 <- lm(alive ~ adapted_temp, data = t_week6data)
+ Anova(lm_week6, type = "II")
+ #not significant
  
   #Week 12
  t_week12data <- data %>%
    filter(weeks_since_heatwave == "12",
-          heatwave == "1")
+          heatwave == 1)
  
- t_week12anova <- aov(alive ~ adapted_temp, data = t_week12data)
+ lm_week12 <- lm(alive ~ adapted_temp, data = t_week12data)
+ Anova(lm_week12, type = "II")
+ #not significant
+ 
+  #Week 18
+  t_week18data <- data %>%
+    filter(weeks_since_heatwave == "18",
+           heatwave == 1)
+  
+  lm_week18 <- lm(alive ~ adapted_temp, data = t_week18data)
+  Anova(lm_week18, type = "II")
+  #not significant
+  
 
-  summary(t_week12anova)
- 
+#make a new column with specific population ids
+data <- data%>%
+  mutate(pop_id = paste(adapted_temp,heatwave,population_id, sep = "_"))
+
+#check that n = 60 for pop_id
+n_distinct(data$pop_id)
+
+
+lmmglobal <- lmer(alive ~ adapted_temp * heatwave * weeks_since_heatwave + (1|pop_id),data = data)
+Anova(lmmglobal, type = 2)
+
+# because theres a significant relationship between heatwave and weeks since, we ran models for each week
+#report p value chi squared value etc. in main results and put this table in supplementary results
+
+
   
