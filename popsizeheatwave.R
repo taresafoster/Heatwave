@@ -1,13 +1,13 @@
-
-#load the packages that I need for this code
+# Load packages
 library(ggplot2)
 library(tidyverse)
 library(cowplot)
 library(ggpubr)
 library(dplyr)
 library(car)
+library(lme4)
 
-#Tess's ggplot theme
+# Import ggplot theme for plots
 theme_tess <- function () { 
   theme_cowplot()+ #cowplot is an existing nice looking plot type thing
     theme(axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)))+
@@ -20,23 +20,23 @@ theme_tess <- function () {
     theme(axis.title.y=element_text(size=20))
 }
 
-#get data 
+# Import data
 data <-read.csv("./data/heatwavepopulation.csv",stringsAsFactors = FALSE,
                 strip.white = TRUE, na.strings = c("NA",""))
 
- 
-#### MAIN PLOT
-
-#make heatwave, adapted_temp, and weeks_since_heatwave factors
+# Make heatwave a factor
 data$heatwave <- factor(data$heatwave, levels = c(0, 1))
   
+# Make adapted_temp a factor
 data$adapted_temp<- factor(data$adapted_temp,
                            levels = c("25", "30", "35"))
 
-data$weeks_since_heatwave <- factor(data$weeks_since_heatwave, 
-                                    levels = c( "0", "2", "6", "12", "18"))
+# Make weeks_since_heatwave numeric
+data$weeks_since_heatwave <- as.numeric(as.character(data$weeks_since_heatwave))
   
-#calculate summary stats
+#### PLOT ####
+
+# Calculate summary statistics
   summary_data <- data %>%
     group_by(adapted_temp, heatwave, weeks_since_heatwave) %>%
     summarise(mean = mean(alive),
@@ -46,176 +46,156 @@ data$weeks_since_heatwave <- factor(data$weeks_since_heatwave,
   summary_data$heatwave <- factor(summary_data$heatwave, levels = c(0, 1))
   summary_data$group_id <- interaction(summary_data$adapted_temp, summary_data$heatwave)
   data$group_id <- interaction(data$adapted_temp, data$heatwave)
-  
 
-#create plot
-p <- ggplot(summary_data, aes(x = weeks_since_heatwave, y = mean, 
-                              color = adapted_temp, shape = heatwave, 
-                              group = group_id)) +
-    geom_point(size = 4, position = position_dodge(width = 0.6)) +
-    scale_x_discrete(expand = c(0.9, 2)) +
-    geom_jitter(data = data, #jitter points
-                aes(x = weeks_since_heatwave, y = alive, 
-                    color = adapted_temp, shape = heatwave, group = group_id),
-                position = position_jitterdodge(jitter.width = 0.05, 
-                                                dodge.width = 0.6), 
-                size = 3, alpha = 0.5) +
-    geom_errorbar(aes(ymin = mean - se, ymax = mean + se), #add error bars
-                  position = position_dodge(width = 0.6),
-                  width = 0) +
-    scale_shape_manual(values = c("0" = 16, "1" = 17),  #assign shapes to heatwave
-                       name = "Heatwave",
+# Space weeks_since_heatwave raw data points equally
+  data <- data %>% 
+    mutate(time_index = case_when(
+      weeks_since_heatwave == 0  ~ 1,
+      weeks_since_heatwave == 2  ~ 2,
+      weeks_since_heatwave == 6  ~ 3,
+      weeks_since_heatwave == 12 ~ 4,
+      weeks_since_heatwave == 18 ~ 5))
+  
+# Space weeks_since_heatwave summary data points equally
+  summary_data <- summary_data %>%
+    mutate(time_index = case_when(
+      weeks_since_heatwave == 0  ~ 1,
+      weeks_since_heatwave == 2  ~ 2,
+      weeks_since_heatwave == 6  ~ 3,
+      weeks_since_heatwave == 12 ~ 4,
+      weeks_since_heatwave == 18 ~ 5))
+  
+# Order and space heatwave and adapted_temp raw data points 
+  data <- data %>%
+    mutate(x_offset = case_when(
+      heatwave == 0 & adapted_temp == "25" ~ -0.25,
+      heatwave == 0 & adapted_temp == "30" ~ -0.15,
+      heatwave == 0 & adapted_temp == "35" ~ -0.05,
+      heatwave == 1 & adapted_temp == "25" ~  0.05,
+      heatwave == 1 & adapted_temp == "30" ~  0.15,
+      heatwave == 1 & adapted_temp == "35" ~  0.25))
+  
+# Order and space heatwave and adapted_temp summary data points 
+  summary_data <- summary_data %>%
+    mutate(x_offset = case_when(
+      heatwave == 0 & adapted_temp == "25" ~ -0.25,
+      heatwave == 0 & adapted_temp == "30" ~ -0.15,
+      heatwave == 0 & adapted_temp == "35" ~ -0.05,
+      heatwave == 1 & adapted_temp == "25" ~  0.05,
+      heatwave == 1 & adapted_temp == "30" ~  0.15,
+      heatwave == 1 & adapted_temp == "35" ~  0.25))
+ 
+# Offset raw data points
+  data <- data %>%
+    mutate(x_pos = time_index + x_offset)
+  
+# Offset summary data points
+  summary_data <- summary_data %>%
+    mutate(x_pos = time_index + x_offset)
+
+# Generate a plot of population size for different adapted temperatures with and without a heatwave
+p <- ggplot(summary_data, aes(x = x_pos, y = mean, color = adapted_temp, shape = heatwave, group = group_id)) +
+    geom_point(size = 4) +
+    scale_x_continuous(breaks = 1:5, labels = c("0", "2", "6", "12", "18")) +
+    geom_jitter(data = data, 
+                aes(x = x_pos, y = alive, color = adapted_temp, shape = heatwave),
+                width = 0.01, height = 0, size = 3, alpha = 0.5) +
+    geom_errorbar(aes(ymin = mean - se, ymax = mean + se), width = 0) +
+    scale_shape_manual(values = c("0" = 16, "1" = 17), 
+                       name = "Heatwave", 
                        labels = c("0" = "Control", "1" = "Treatment")) +
     scale_color_manual(values = c("cornflowerblue", "darkorange", "brown3"),
                        name = "Adapted temperature",
                        labels = c("25°C", "30°C", "35°C"),
                        breaks = c("25", "30", "35"),
                        guide = guide_legend(reverse = TRUE)) +
-    xlab("Weeks since heatwave") +     #add x- and y-axis labels
+    xlab("Weeks since heatwave") +    
     ylab("Population size (live adult beetles)") +
-    scale_x_discrete (breaks = c("0", "2", "6", "12", "18"), 
-                      labels = c("0", "2", "6", "12", "18")) +
     theme_tess() +
-  theme(
-    legend.title = element_text(size = 16),
+  theme(legend.title = element_text(size = 16),
     legend.text  = element_text(size = 15),
     legend.key.size = unit(0.6, "cm"),
-    legend.spacing.y = unit(0.4, "cm"))
+    legend.key.height = unit(0.8, "cm"),
+    legend.spacing.y  = unit(0.6, "cm"))
 
-#windows();p #enables plot to open on a PC
-  
-quartz()         # Opens a new plotting window
-plot(1:10)       # Your plot appears in that window
-print(p) #this opens the plot in a new window
-  
+#windows();p 
 
-#saves the plot
-ggsave(file="./figures/Taresapopsizefigure.pdf", p, 
-       width = 35, height = 22, units = "cm") #close the file before you save
+# Save the plot
+#ggsave(file="./figures/popsize.pdf", p, 
+       #width = 35, height = 22, units = "cm", dpi = 200) 
 
+#### STATS ####
 
-#### ANOVAs
+#------ Global model ------#
 
-#Global model
-#make a new column with specific population ids called "pop_id"
+# Create a new column with specific population ids called "pop_id"
 data <- data%>%
   mutate(pop_id = paste(adapted_temp,heatwave,population_id, sep = "_"))
 
-#check that n = 60 for pop_id
-n_distinct(data$pop_id)
+# Check that n = 60 for pop_id
+#n_distinct(data$pop_id)
 
+# Construct a global linear model
 lmmglobal <- lmer(alive ~ adapted_temp * heatwave * weeks_since_heatwave + (1|pop_id),data = data)
-Anova(lmmglobal, type = 2)
+
+# Run a three-way ANOVA
+Anova(lmmglobal, type = 3)
 #significant three-way interaction
 
-#TARESA SAYS: when I initially ran my global model during our meeting I had not converted weeks_since_heatwave to
-#a factor and the three-way interaction was not significant. When I convert it to a factor it is significant. I am
-#assuming it is supposed to be a factor and therefore the three-way is significant
 
-#TWO-way ANOVAs
+#------ Two-way ANOVAs for each time point ------#
 
-#Week 0
+# Filter data for Week 0
 week0data <- data %>%
   filter(weeks_since_heatwave == "0")
 
+# Construct a linear model
 lm_week0<-lm(alive~adapted_temp*heatwave,data=week0data)
+
+# Run an ANOVA
 Anova(lm_week0,type="2")
 #signficant interaction
 
-#Week 2
+# Filter data for Week 2
 week2data <- data %>%
     filter(weeks_since_heatwave == "2")
-  
+
+# Construct a linear model
 lm_week2<-lm(alive~adapted_temp*heatwave,data=week2data)
+
+# Run an ANOVA
 Anova(lm_week2,type="2")
 #significant interaction
   
-#Week 6
+# Filter data for Week 6
 week6data <- data %>%
     filter(weeks_since_heatwave == "6")
   
+# Construct a linear model
 lm_week6<-lm(alive~adapted_temp*heatwave,data=week6data)
+
+# Run an ANOVA
 Anova(lm_week6,type="2")
 #significant interaction
   
-#Week 12
+# Filter data for Week 12
 week12data <- data %>%
     filter(weeks_since_heatwave == "12")
 
+# Construct a linear model
 lm_week12<-lm(alive~adapted_temp*heatwave,data=week12data)
+
+# Run an ANOVA
 Anova(lm_week12,type="2")
 #significant interaction
 
-#Week 18
+# Filter data for Week 18
 week18data <- data %>%
   filter(weeks_since_heatwave == "18")
 
+# Construct a linear model
 lm_week18<-lm(alive~adapted_temp*heatwave,data=week18data)
+
+# Run an ANOVA
 Anova(lm_week18,type="2")
 #significant interaction
-
-
-#ONE-way ANOVAs - only treatment data 
-
-#Week 0
-t_week0data <- data %>%
-  filter(weeks_since_heatwave == "0",
-    heatwave == 1)
-
-lm_week0 <- lm(alive ~ adapted_temp, data = t_week0data)
-Anova(lm_week0, type = "II")
-#significant interaction
-
-#Week 2
- t_week2data <- data %>%
-   filter(weeks_since_heatwave == "2",
-          heatwave == 1)
- 
- lm_week2 <- lm(alive ~ adapted_temp, data = t_week2data)
- Anova(lm_week2, type = "II")
- #significant interaction
- 
-  #Week 6
- t_week6data <- data %>%
-   filter(weeks_since_heatwave == "6",
-          heatwave == 1)
- 
- lm_week6 <- lm(alive ~ adapted_temp, data = t_week6data)
- Anova(lm_week6, type = "II")
- #not significant
- 
-  #Week 12
- t_week12data <- data %>%
-   filter(weeks_since_heatwave == "12",
-          heatwave == 1)
- 
- lm_week12 <- lm(alive ~ adapted_temp, data = t_week12data)
- Anova(lm_week12, type = "II")
- #not significant
- 
-  #Week 18
-  t_week18data <- data %>%
-    filter(weeks_since_heatwave == "18",
-           heatwave == 1)
-  
-  lm_week18 <- lm(alive ~ adapted_temp, data = t_week18data)
-  Anova(lm_week18, type = "II")
-  #not significant
-  
-
-#make a new column with specific population ids
-data <- data%>%
-  mutate(pop_id = paste(adapted_temp,heatwave,population_id, sep = "_"))
-
-#check that n = 60 for pop_id
-n_distinct(data$pop_id)
-
-
-lmmglobal <- lmer(alive ~ adapted_temp * heatwave * weeks_since_heatwave + (1|pop_id),data = data)
-Anova(lmmglobal, type = 2)
-
-# because theres a significant relationship between heatwave and weeks since, we ran models for each week
-#report p value chi squared value etc. in main results and put this table in supplementary results
-
-
-  
