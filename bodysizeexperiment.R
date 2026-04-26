@@ -1,8 +1,6 @@
 # Load packages
 library(ggplot2)
-library(tidyverse)
 library(cowplot)
-library(ggpubr)
 library(dplyr)
 
 # Import ggplot theme for plots
@@ -53,7 +51,7 @@ anova(model_1, test = "Chisq")
 # Generate plot
 p_f2w <- ggplot(female_2weeks, 
                 aes(x = weight_mg, y = survival_twoweeks_binomial)) +
-  geom_jitter(height = 0.01, width = 0, size=3,shape=16, colour="black") +
+  geom_jitter(height = 0.01, width = 0, size=3, shape=16, colour="black") +
   geom_smooth(method = "glm", method.args = list(family = "binomial"),
               se=FALSE, color = "black") +
   scale_y_continuous(breaks = c(0, 1), labels = c("Died", "Survived")) +
@@ -82,7 +80,7 @@ anova(model_2, test = "Chisq")
 
 # Generate plot
 p_m2w <- ggplot(male_2weeks, aes(x = weight_mg, y = survival_twoweeks_binomial)) +
-  geom_jitter(height = 0.01, width = 0,colour="black",size=3) +
+  geom_jitter(height = 0.01, width = 0, size=3, shape=16, colour="black") +
   geom_smooth(method = "glm", method.args = list(family = "binomial"), 
               se = FALSE, color = "black") +
   scale_y_continuous(breaks = c(0, 1), labels = c("Died", "Survived")) +

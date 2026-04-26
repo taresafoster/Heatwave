@@ -1,15 +1,13 @@
 # Load packages
 library(ggplot2)
-library(tidyverse)
 library(cowplot)
-library(ggpubr)
 library(dplyr)
 library(car)
 library(lme4)
 
 # Import ggplot theme for plots
 theme_tess <- function () { 
-  theme_cowplot()+ #cowplot is an existing nice looking plot type thing
+  theme_cowplot()+
     theme(axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)))+
     theme(axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)))+
     theme(axis.text.x=element_text(size=20))+
@@ -121,8 +119,8 @@ p <- ggplot(summary_data, aes(x = x_pos, y = mean, color = adapted_temp, shape =
 #windows();p 
 
 # Save the plot
-#ggsave(file="./figures/popsize.pdf", p, 
-       #width = 35, height = 22, units = "cm", dpi = 200) 
+ggsave(file="./figures/popsize.pdf", p, 
+       width = 35, height = 22, units = "cm", dpi = 200) 
 
 #### STATS ####
 
@@ -147,7 +145,7 @@ Anova(lmmglobal, type = 3)
 
 # Filter data for Week 0
 week0data <- data %>%
-  filter(weeks_since_heatwave == "0")
+  filter(weeks_since_heatwave == 0)
 
 # Construct a linear model
 lm_week0<-lm(alive~adapted_temp*heatwave,data=week0data)
@@ -158,7 +156,7 @@ Anova(lm_week0,type="2")
 
 # Filter data for Week 2
 week2data <- data %>%
-    filter(weeks_since_heatwave == "2")
+    filter(weeks_since_heatwave == 2)
 
 # Construct a linear model
 lm_week2<-lm(alive~adapted_temp*heatwave,data=week2data)
@@ -169,7 +167,7 @@ Anova(lm_week2,type="2")
   
 # Filter data for Week 6
 week6data <- data %>%
-    filter(weeks_since_heatwave == "6")
+    filter(weeks_since_heatwave == 6)
   
 # Construct a linear model
 lm_week6<-lm(alive~adapted_temp*heatwave,data=week6data)
@@ -180,7 +178,7 @@ Anova(lm_week6,type="2")
   
 # Filter data for Week 12
 week12data <- data %>%
-    filter(weeks_since_heatwave == "12")
+    filter(weeks_since_heatwave == 12)
 
 # Construct a linear model
 lm_week12<-lm(alive~adapted_temp*heatwave,data=week12data)
@@ -191,7 +189,7 @@ Anova(lm_week12,type="2")
 
 # Filter data for Week 18
 week18data <- data %>%
-  filter(weeks_since_heatwave == "18")
+  filter(weeks_since_heatwave == 18)
 
 # Construct a linear model
 lm_week18<-lm(alive~adapted_temp*heatwave,data=week18data)

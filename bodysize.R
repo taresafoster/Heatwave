@@ -1,13 +1,10 @@
 # Load packages
 library(ggplot2)
-library(tidyverse)
 library(cowplot)
-library(ggpubr)
 library(dplyr)
+library(tidyr)
 library(car) 
 library(emmeans) 
-library(multcompView)
-library(multcomp)
 
 # Import ggplot theme for plots
 theme_tess <- function () { 
@@ -41,7 +38,7 @@ data$weight <- data$weight * 1000
 # Construct a linear model
 lm_bodysize <- lm(weight ~ adapted_temp * sex, data = data)
 
-# Run a two-way ANOVA
+# Run an ANOVA
 Anova(lm_bodysize, type="2")
 #significant interaction
 
@@ -115,7 +112,7 @@ data2$weight <- data2$weight * 1000
 # Construct a linear model
 lm_bodysize_post <- lm(weight ~ adapted_temp * sex * heatwave, data = data2)
 
-# Run a two-way ANOVA
+# Run an ANOVA
 Anova(lm_bodysize_post, type="2")
 #significant interaction
 
@@ -194,11 +191,11 @@ summary_data2$plotting_labels <- c("a", "ab", "b", "a", "a", "b", "a", "a", "a",
 p_post <- ggplot(summary_data2, aes(x = x_pos, y = mean, 
                 color = adapted_temp, shape = heatwave)) +
   geom_point(size = 4, position = position_dodge(width = 0.4)) +
-  geom_jitter(data = means,   aes(x = x_pos, y = pop_mean, 
+  geom_jitter(data = means, aes(x = x_pos, y = pop_mean, 
                                   color = adapted_temp,shape = heatwave),
               position = position_jitterdodge(jitter.width = 0, dodge.width = 0.4), 
               size = 3, alpha = 0.5) +
-  geom_errorbar(aes(ymin = mean - se, ymax = mean + se), #add error bars
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
                 position = position_dodge(width = 0.4),
                 width = 0) +
   geom_text(aes(label = plotting_labels,
@@ -209,15 +206,15 @@ p_post <- ggplot(summary_data2, aes(x = x_pos, y = mean,
             size = 6,
             fontface = "bold") +
   scale_color_manual(
-    values = c("25°C" = "cornflowerblue", "30°C" = "darkorange", "35°C" = "brown3"),   #assign colours to temperatures
+    values = c("25°C" = "cornflowerblue", "30°C" = "darkorange", "35°C" = "brown3"),
     name = "Adapted temperature")+
-  scale_shape_manual(values = c("Control" = 16, "Treatment" = 17),  #assign shapes to heatwave
-                     name = "Heatwave") +  #label the x-axis categories
+  scale_shape_manual(values = c("Control" = 16, "Treatment" = 17), 
+                     name = "Heatwave") + 
   scale_y_continuous(limits = c(1.0, 1.8)) +
   scale_x_continuous(
     breaks = c(1, 1.6, 2.4, 3.0),
     labels = c("Female", "Female", "Male", "Male")) +
-  xlab("Sex") + #assign x- and y-axis labels
+  xlab("Sex") + 
   ylab("") +
   labs(title = "Body size at end of experiment")+ 
   theme_tess()+ 
@@ -261,7 +258,7 @@ Anova(lm_fecundity_treatment, type = "2")
 # Calculate the mean number of eggs for each population
 egg_means <- f_data_filtered%>%
   group_by(adapted_temp, population_id, heatwave) %>%
-  summarise(mean_egg_count = mean(egg_count, na.rm = TRUE))
+  summarise(mean_egg_count = mean(egg_count, na.rm = TRUE), .groups = "drop")
 
 # Calculate summary statistics using the egg_means for each population
 f_summary_data <- egg_means %>%
@@ -300,15 +297,15 @@ egg_means <- egg_means %>%
 # Generate plot
 f_p <- ggplot(f_summary_data, aes(x = x_pos_f, y = mean, color = adapted_temp, shape = heatwave)) +
   geom_point(size = 4, position = position_dodge(width = 0.5)) +
-  geom_jitter(data = egg_means, #jitter points
-              aes(x = x_pos_f, y = mean_egg_count, , 
+  geom_jitter(data = egg_means, 
+              aes(x = x_pos_f, y = mean_egg_count, 
                   color = adapted_temp,
                   shape = heatwave,
                   group = population_id),
               position = position_jitterdodge(jitter.width = 0.06, 
                                               dodge.width = 0.2), 
               size = 3, alpha = 0.5) +
-  geom_errorbar(aes(ymin = mean - se, ymax = mean + se), #add error bars
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se), 
                 position = position_dodge(width = 0.6),
                 width = 0) +
   geom_text(aes(label = plotting_labels,
@@ -319,14 +316,14 @@ f_p <- ggplot(f_summary_data, aes(x = x_pos_f, y = mean, color = adapted_temp, s
             size = 7,
             fontface = "bold") +
   scale_color_manual(
-    values = c("25°C" = "cornflowerblue", "30°C" = "darkorange", "35°C" = "brown3"),   #assign colours to sex
+    values = c("25°C" = "cornflowerblue", "30°C" = "darkorange", "35°C" = "brown3"),   
     name = "Adapted temperature")+
   scale_y_continuous(limits = c(0, 24)) +
   scale_x_continuous(
     breaks = c(1.1, 1.7, 2.3, 3.3, 3.9, 4.5),
     labels = c("25°C", "30°C", "35°C", "25°C", "30°C", "35°C"),
     limits = c(0.8, 4.8)) +
-  xlab("Adapted temperature") +     #add x- and y-axis labels
+  xlab("Adapted temperature") +   
   ylab("Number of eggs per female") +
   labs(title = "Fecundity after heatwave")+ 
   theme_tess()+ 
@@ -367,6 +364,6 @@ bottom_row <- plot_grid(f_p_noleg, legend_centered, labels = c("C", ""),
 combined <- plot_grid(top_row, bottom_row, ncol = 1, rel_heights = c(1, 1))
 
 # Save plot
-#ggsave(filename = "./figures/fecundityandbodysize.pdf",
-         #plot = combined, width = 30, height = 30, units = "cm", dpi = 300)
+ggsave(filename = "./figures/fecundityandbodysize.pdf",
+         plot = combined, width = 30, height = 30, units = "cm", dpi = 300)
 
