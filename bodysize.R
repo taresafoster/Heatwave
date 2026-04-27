@@ -1,13 +1,12 @@
-#load the packages that I need for this code
+# Load packages
 library(ggplot2)
-library(tidyverse)
 library(cowplot)
-library(ggpubr)
 library(dplyr)
-library(car) #for running type 2 anovas
-library(emmeans) #for running post-hoc tests on type 2 anovas
+library(tidyr)
+library(car) 
+library(emmeans) 
 
-#Tess's ggplot theme
+# Import ggplot theme for plots
 theme_tess <- function () { 
   theme_cowplot()+
     theme(axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)))+
@@ -20,109 +19,138 @@ theme_tess <- function () {
     theme(axis.title.y=element_text(size=20))
 }
 
-#### PRE HEATWAVE ####
+#### PRE HEATWAVE BODY SIZE ####
 
+# Import data
 data <-read.csv("./data/preheatwavebodysize.csv",stringsAsFactors = FALSE,
                 strip.white = TRUE, na.strings = c("NA",""))
 
-#make adapted_temp a factor
+# Make adapted_temp a factor
 data$adapted_temp <- factor(data$adapted_temp,
                             levels = c(25, 30, 35),
                             labels = c("25°C", "30°C", "35°C"))
 
-#order the x axis raw data points
+# Convert grams to milligrams
+data$weight <- data$weight * 1000
+
+#------Stats------#
+
+# Construct a linear model
+lm_bodysize <- lm(weight ~ adapted_temp * sex, data = data)
+
+# Run an ANOVA
+Anova(lm_bodysize, type="2")
+#significant interaction
+
+# Run a Tukey test
+emmeans(lm_bodysize, pairwise ~ adapted_temp | sex, adjust = "tukey")
+
+#------Plot------#
+
+# Order the x-axis raw data points
 data <- data %>% 
   mutate(sex_temp = factor(paste(sex, adapted_temp),
       levels = c( "f 25°C", "f 30°C", "f 35°C", "m 25°C", "m 30°C", "m 35°C")))
 
-#calculate summary stats
+# Calculate summary statistics
 summary_data <- data %>%
   group_by(adapted_temp, sex) %>%
   summarise(mean = mean(weight),
             n=n(),
             sd = sd(weight),
-            se = sd / sqrt(n))
+            se = sd / sqrt(n), .groups = "drop") 
 
-#order the x axis summary stats
+# Order the summary data
 summary_data <- summary_data %>%
-  mutate(sex_temp = factor(paste(sex, adapted_temp),
-      levels = c("f 25°C", "f 30°C", "f 35°C", "m 25°C", "m 30°C", "m 35°C")))
+  arrange(sex, adapted_temp)
 
-summary_data$group_id <- interaction(summary_data$adapted_temp, summary_data$sex)
-data$group_id <- interaction(data$adapted_temp, data$sex)
+# Add letters denoting Tukey test results
+summary_data$plotting_labels <- c("a", "a", "b", "a", "a", "a")
 
-#------Plot------#
-
+# Generate plot
 p_pre <- ggplot(summary_data, aes(x = sex, y = mean, color = adapted_temp)) +
+  geom_jitter(data = data, aes(x = sex, y = weight, color = adapted_temp), 
+              position = position_jitterdodge(jitter.width = 0.1, dodge.width = 0.4), 
+              size = 3, alpha = 0.3) +
   geom_point(size = 4, position = position_dodge(width = 0.4)) +
-  geom_jitter(data = data,aes(x = sex, y = weight, color = adapted_temp),  #jitter the points
-              position = position_jitterdodge(jitter.width = 0, dodge.width = 0.4), 
-              size = 3, alpha = 0.5) +
-  geom_errorbar(aes(ymin = mean - se, ymax = mean + se), #add error bars
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se), 
                 position = position_dodge(width = 0.4), width = 0) +
-  scale_color_manual(values = c("25°C" = "cornflowerblue", "30°C" = "darkorange", "35°C" = "brown3"),  #assign colours to sex
+  geom_text(aes(label = plotting_labels, 
+                group = adapted_temp,  
+                y = mean + se + 0.22), 
+            position = position_dodge(width = 0.4), 
+            color = "black", 
+            size = 7, 
+            fontface = "bold") +
+  scale_color_manual(values = c("25°C" = "cornflowerblue", "30°C" = "darkorange", "35°C" = "brown3"), 
                      name = "Adapted temperature") +
-  scale_x_discrete(labels = c("Female", "Male")) +   #label the x-axis categories
-  scale_y_continuous(limits = c(0.0010, 0.0016))+
-  xlab("Sex") + #assign x- and y-axis labels
-  ylab("Body size (g)") +
-  labs(title = "Before experiment")+ #tess added this
-  #guides(fill = "none", color = "none", shape = "none", linetype = "none")+#tess added this to suppress the legend
-  theme_tess()+ 
+  scale_x_discrete(labels = c("f" = "Female", "m" = "Male")) +
+  xlab("Sex") + 
+  ylab("Body size (mg)") +
+  labs(title = "Body size before experiment")+ 
+  coord_cartesian(ylim = c(1.0, 1.8)) + 
+  theme_tess() + 
   theme(aspect.ratio = 1)
-
-#windows();p_pre #enables plot to open on a PC
-#print(p_pre) #this opens the plot in a new window
-
-#------Stats------#
-
-#Two-way ANOVA
-lm_bodysize <- lm(weight ~ adapted_temp * sex, data = data)
-Anova(lm_bodysize, type="2")
-#significant interaction
-  
-#Tukey test
-emmeans(lm_bodysize, pairwise ~ adapted_temp | sex, adjust = "tukey")
 
 
 ####POST HEATWAVE BODY SIZE#### 
 
+# Import data
 data2 <-read.csv("./data/postheatwavebodysize.csv",stringsAsFactors = FALSE,
                 strip.white = TRUE, na.strings = c("NA",""))
 
-#make adapted_temp a factor
+# Make adapted_temp a factor
 data2$adapted_temp <- factor(data2$adapted_temp,
                             levels = c(25, 30, 35),
                             labels = c("25°C", "30°C", "35°C"))
 
-#calculate the mean for each population/group
+# Convert grams to milligrams
+data2$weight <- data2$weight * 1000
+
+#------Stats------#
+
+# Construct a linear model
+lm_bodysize_post <- lm(weight ~ adapted_temp * sex * heatwave, data = data2)
+
+# Run an ANOVA
+Anova(lm_bodysize_post, type="2")
+#significant interaction
+
+# Run a Tukey test
+emmeans(lm_bodysize_post, pairwise ~ adapted_temp | sex * heatwave, adjust = "tukey")
+
+#------Plot------#
+
+# Calculate the mean for each population
 means <- data2 %>%
   drop_na(weight) %>%
-  group_by(heatwave, adapted_temp, sex, group_id) %>%
-  summarise(pop_mean = mean(weight))
+  group_by(heatwave, adapted_temp, sex, population_id) %>%
+  summarise(pop_mean = mean(weight), .groups = "drop")
 
-#calculate summary stats using the means for each population
+# Calculate summary statistics using the means for each population
 summary_data2 <- means %>%
   group_by(heatwave, adapted_temp, sex) %>%
   summarise(mean = mean(pop_mean),
             n=n(),
             sd = sd(pop_mean),
-            se = sd / sqrt(n))
+            se = sd / sqrt(n), .groups = "drop")
 
-#make heatwave a factor in all data sets
+# Make heatwave a factor in all data sets
 summary_data2$heatwave <- factor(summary_data2$heatwave,
                                 levels = c(0, 1),
                                 labels = c("Control", "Treatment"))
+
 data2$heatwave <- factor(data2$heatwave, levels = c(0, 1),
                         labels = c("Control", "Treatment"))
 
 means$heatwave <- factor(means$heatwave, levels = c(0, 1),
                          labels = c("Control", "Treatment"))
 
-summary_data2$group_id <- interaction(summary_data2$adapted_temp, summary_data2$sex)
-data2$group_id <- interaction(data2$adapted_temp, data2$sex)
+# Group each unique combination of adapted_temp and sex
+summary_data2$population_id <- interaction(summary_data2$adapted_temp, summary_data2$sex)
+data2$population_id <- interaction(data2$adapted_temp, data2$sex)
 
-#order the x axis in all data sets
+# Order the x-axis in all data sets
 data2 <- data2 %>%
   mutate(sex_heatwave = factor(paste(sex, heatwave), 
                                 levels = c("f Control", 
@@ -137,9 +165,7 @@ summary_data2 <- summary_data2 %>%
                                levels = c("f Control", "f Treatment", 
                                           "m Control", "m Treatment")))
 
-#------Plot------#
-
-#create custom "x_pos" spacing for x axis
+# Create custom spacing on the x-axis in all data sets
 summary_data2 <- summary_data2 %>%
   mutate(x_pos = case_when(
     sex_heatwave == "f Control" ~ 1,
@@ -154,129 +180,166 @@ means <- means %>%
     sex_heatwave == "m Control" ~ 2.4,
     sex_heatwave == "m Treatment" ~ 3.0))
 
+# Reorder summary data
+summary_data2 <- summary_data2 %>%
+  arrange(sex, heatwave, adapted_temp)
+
+# Add letters denoting Tukey test results
+summary_data2$plotting_labels <- c("a", "ab", "b", "a", "a", "b", "a", "a", "a", "a", "ab", "b")
+
+# Generate plot
 p_post <- ggplot(summary_data2, aes(x = x_pos, y = mean, 
                 color = adapted_temp, shape = heatwave)) +
   geom_point(size = 4, position = position_dodge(width = 0.4)) +
-  geom_jitter(data = means,   aes(x = x_pos, y = pop_mean, 
+  geom_jitter(data = means, aes(x = x_pos, y = pop_mean, 
                                   color = adapted_temp,shape = heatwave),
               position = position_jitterdodge(jitter.width = 0, dodge.width = 0.4), 
               size = 3, alpha = 0.5) +
-  geom_errorbar(aes(ymin = mean - se, ymax = mean + se), #add error bars
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se),
                 position = position_dodge(width = 0.4),
                 width = 0) +
+  geom_text(aes(label = plotting_labels,
+                group = adapted_temp,
+                y = mean + se + 0.2),
+            position = position_dodge(width = 0.4),
+            color = "black",
+            size = 6,
+            fontface = "bold") +
   scale_color_manual(
-    values = c("25°C" = "cornflowerblue", "30°C" = "darkorange", "35°C" = "brown3"),   #assign colours to temperatures
+    values = c("25°C" = "cornflowerblue", "30°C" = "darkorange", "35°C" = "brown3"),
     name = "Adapted temperature")+
-  scale_shape_manual(values = c("Control" = 16, "Treatment" = 17),  #assign shapes to heatwave
-                     name = "Heatwave") +  #label the x-axis categories
-  scale_y_continuous(limits = c(0.0010, 0.0016))+
+  scale_shape_manual(values = c("Control" = 16, "Treatment" = 17), 
+                     name = "Heatwave") + 
+  scale_y_continuous(limits = c(1.0, 1.8)) +
   scale_x_continuous(
     breaks = c(1, 1.6, 2.4, 3.0),
     labels = c("Female", "Female", "Male", "Male")) +
-  xlab("Sex") + #assign x- and y-axis labels
+  xlab("Sex") + 
   ylab("") +
-  labs(title = "End of experiment")+ 
+  labs(title = "Body size at end of experiment")+ 
   theme_tess()+ 
   theme(aspect.ratio = 1)
 
-#------Stats------#
-
-#Two-way ANOVA
-lm_bodysize_post <- lm(weight ~ adapted_temp * sex, data = data2)
-Anova(lm_bodysize_post, type="2")
-#significant interaction
-
-#Tukey test
-emmeans(lm_bodysize_post, pairwise ~ adapted_temp | sex, adjust = "tukey")
-
-
 ####POST HEATWAVE FECUNDITY#### 
 
+# Import data
 f_data <-read.csv("./data/heatwavefecundity.csv",stringsAsFactors = FALSE,
                 strip.white = TRUE, na.strings = c("NA",""))
 
-#make heatwave and adpated_temp factors
-f_data$heatwave <- factor(f_data$heatwave, levels = c("c", "t"))
-#make adapted_temp a factor
+# Make heatwave a factor
+f_data$heatwave <- factor(f_data$heatwave, 
+                          levels = c(0, 1), 
+                          labels = c("Control", "Heatwave"))
+
+# Make adapted_temp a factor
 f_data$adapted_temp <- factor(f_data$adapted_temp,
                              levels = c(25, 30, 35),
-                             labels = c("25°C", "30°C", "35°C")) #make adapted temp into a factor so we can color code by it in the plot
+                             labels = c("25°C", "30°C", "35°C"))
 
-#filter to only the controls and remove all of the "nb" (no beetle) tubes 
+# Filter to remove all of the "nb" (no beetle) and "db" (dead beetle) tubes 
 f_data_filtered <- f_data %>%
-  filter(
-    heatwave == "c",
-    notes != "nb")
+  filter((notes != "nb" & notes != "db") | is.na(notes))
 
-#group by temp and population (heatwave is only "c" now)
-#calculate the means for each population
+#------Stats------#
+
+# Filter data to include only heatwave populations
+f_data_treatment <- f_data_filtered %>%
+  filter(heatwave == "Heatwave")
+
+# Construct a linear model
+lm_fecundity_treatment <- lm(egg_count ~ adapted_temp, data = f_data_treatment)
+
+# Run an ANOVA
+Anova(lm_fecundity_treatment, type = "2")
+
+
+#------Plot------#
+
+# Calculate the mean number of eggs for each population
 egg_means <- f_data_filtered%>%
-  group_by(adapted_temp, population_id) %>%
-  summarise(mean_egg_count = mean(egg_count, na.rm = TRUE))
+  group_by(adapted_temp, population_id, heatwave) %>%
+  summarise(mean_egg_count = mean(egg_count, na.rm = TRUE), .groups = "drop")
 
-#calculate summary stats for each treatment
+# Calculate summary statistics using the egg_means for each population
 f_summary_data <- egg_means %>%
-  group_by(adapted_temp) %>%
+  group_by(adapted_temp, heatwave) %>%
   summarise(mean = mean(mean_egg_count),
             n=n(),
             sd = sd(mean_egg_count),
             se = sd / sqrt(n))
 
-#------Plot------#
+# Reorder summary data
+f_summary_data <- f_summary_data %>%
+  arrange(heatwave, adapted_temp)
 
-#create custom spacing for x axis
+# Add letters denoting Tukey test results
+f_summary_data$plotting_labels <- c("a", "a", "a", "a", "a", "a") 
+
+# Create custom spacing for x-axis in all data sets
 f_summary_data <- f_summary_data %>%
   mutate(x_pos_f = case_when(
-    adapted_temp == "25°C" ~ 1.1,
-    adapted_temp == "30°C" ~ 1.7,
-    adapted_temp == "35°C" ~ 2.3))
+    heatwave == "Control" & adapted_temp == "25°C" ~ 1.1,
+    heatwave == "Control" & adapted_temp == "30°C" ~ 1.7,
+    heatwave == "Control" & adapted_temp == "35°C" ~ 2.3,
+    heatwave == "Heatwave" & adapted_temp == "25°C" ~ 3.3,
+    heatwave == "Heatwave" & adapted_temp == "30°C" ~ 3.9,
+    heatwave == "Heatwave" & adapted_temp == "35°C" ~ 4.5))
 
 egg_means <- egg_means %>%
   mutate(x_pos_f = case_when(
-    adapted_temp == "25°C" ~ 1.1,
-    adapted_temp == "30°C" ~ 1.7,
-    adapted_temp == "35°C" ~ 2.3))
+    heatwave == "Control" & adapted_temp == "25°C" ~ 1.1,
+    heatwave == "Control" & adapted_temp == "30°C" ~ 1.7,
+    heatwave == "Control" & adapted_temp == "35°C" ~ 2.3,
+    heatwave == "Heatwave" & adapted_temp == "25°C" ~ 3.3,
+    heatwave == "Heatwave" & adapted_temp == "30°C" ~ 3.9,
+    heatwave == "Heatwave" & adapted_temp == "35°C" ~ 4.5))
 
-f_p <- ggplot(f_summary_data, aes(x = x_pos_f, y = mean, color = adapted_temp)) +
+# Generate plot
+f_p <- ggplot(f_summary_data, aes(x = x_pos_f, y = mean, color = adapted_temp, shape = heatwave)) +
   geom_point(size = 4, position = position_dodge(width = 0.5)) +
-  geom_jitter(data = egg_means, #jitter points
-              aes(x = x_pos_f, y = mean_egg_count, , 
+  geom_jitter(data = egg_means, 
+              aes(x = x_pos_f, y = mean_egg_count, 
                   color = adapted_temp,
+                  shape = heatwave,
                   group = population_id),
               position = position_jitterdodge(jitter.width = 0.06, 
                                               dodge.width = 0.2), 
               size = 3, alpha = 0.5) +
-  geom_errorbar(aes(ymin = mean - se, ymax = mean + se), #add error bars
+  geom_errorbar(aes(ymin = mean - se, ymax = mean + se), 
                 position = position_dodge(width = 0.6),
                 width = 0) +
+  geom_text(aes(label = plotting_labels,
+                group = adapted_temp,
+                y = mean + se + 5.8),
+            position = position_dodge(width = 0.5),
+            color = "black",
+            size = 7,
+            fontface = "bold") +
   scale_color_manual(
-    values = c("25°C" = "cornflowerblue", "30°C" = "darkorange", "35°C" = "brown3"),   #assign colours to sex
+    values = c("25°C" = "cornflowerblue", "30°C" = "darkorange", "35°C" = "brown3"),   
     name = "Adapted temperature")+
+  scale_y_continuous(limits = c(0, 24)) +
   scale_x_continuous(
-    breaks = c(1.1, 1.7, 2.3),
-    labels = c("25°C", "30°C", "35°C"),
-    limits = c(0.8, 2.7)) +
-  xlab("Adapted temperature") +     #add x- and y-axis labels
+    breaks = c(1.1, 1.7, 2.3, 3.3, 3.9, 4.5),
+    labels = c("25°C", "30°C", "35°C", "25°C", "30°C", "35°C"),
+    limits = c(0.8, 4.8)) +
+  xlab("Adapted temperature") +   
   ylab("Number of eggs per female") +
-  labs(title = "After heatwave")+ 
+  labs(title = "Fecundity after heatwave")+ 
   theme_tess()+ 
-  theme(aspect.ratio = 1)
+  theme(aspect.ratio = 1,axis.text.x = element_text(size = 17))
 
-#Stats
-lm_egg_count <- lm(mean_egg_count ~ adapted_temp, data = egg_means)
-Anova(lm_egg_count)
+#### COMBINED PLOT ####
 
-#### COMBINED FIGURE ####
-
-#adjust the axis text size for the combined plot
+# Adjust the axis text size for the combined plot
 p_post <- p_post + theme(axis.text.x = element_text(size = 18))
 
-#remove the individual legends from both plots
+# Remove the individual legends from all plots
 p_pre_noleg  <- p_pre  + theme(legend.position = "none")
 p_post_noleg <- p_post + theme(legend.position = "none")
 f_p_noleg <- f_p + theme(legend.position = "none")
 
-#create a new legend 
+# Create a new legend 
 legend <- get_legend(p_post +
     theme(legend.position = "right",
           legend.box = "vertical",
@@ -285,37 +348,22 @@ legend <- get_legend(p_post +
           legend.key.size = unit(0.8, "cm"),
           legend.spacing.y = unit(0.2, "cm")))
 
-#center the legend
+# Center the new legend
 legend_centered <- ggdraw() +
-  draw_grob(legend, x = 0.5, y = 0.5, hjust = 0.5, vjust = 0.5)
+  draw_grob(legend, x = 0.7, y = 0.6, hjust = 0.5, vjust = 0.5)
 
-#create top half of combined figure
+# Create the top half of combined plot
 top_row <- plot_grid(p_pre_noleg, p_post_noleg, labels = c("A", "B"),
                      label_size = 20, ncol = 2, align = "hv")
 
-#create bottom half of combined figure
+# Create the bottom half of combined plot
 bottom_row <- plot_grid(f_p_noleg, legend_centered, labels = c("C", ""),
                         label_size = 20, ncol = 2, align = "hv")
 
-#create combined plot
+# Create combined plot
 combined <- plot_grid(top_row, bottom_row, ncol = 1, rel_heights = c(1, 1))
 
-
-ggsave(filename = "./figures/Taresabodysizebeforeafter.pdf",
+# Save plot
+ggsave(filename = "./figures/fecundityandbodysize.pdf",
          plot = combined, width = 30, height = 30, units = "cm", dpi = 300)
-
-#------Stats------#
-
-#Three way anova
-lm_bodysize <- lm(weight ~ adapted_temp * sex*heatwave, data = data2)
-Anova(lm_bodysize, type="2")
-
-#Tukey test
-emm <- emmeans(lm_bodysize, ~ heatwave | sex, data = data2)
-pairs(emm, adjust = "tukey")
-
-#significant interaction between sex and heatwave
-#strong effect of sex (females larger), significant effect of adapted temp (cold adapted larger)
-#let's discuss what this means
-
 
