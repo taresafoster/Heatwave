@@ -19,7 +19,7 @@ theme_tess <- function () {
     theme(axis.title.y=element_text(size=20))
 }
 
-#### PRE HEATWAVE BODY SIZE ####
+#### BEFORE EXPERIMENT BODY SIZE ####
 
 # Import data
 data <-read.csv("./data/preheatwavebodysize.csv",stringsAsFactors = FALSE,
@@ -93,7 +93,7 @@ p_pre <- ggplot(summary_data, aes(x = sex, y = mean, color = adapted_temp)) +
   theme(aspect.ratio = 1)
 
 
-####POST HEATWAVE BODY SIZE#### 
+####END OF EXPERIMENT BODY SIZE#### 
 
 # Import data
 data2 <-read.csv("./data/postheatwavebodysize.csv",stringsAsFactors = FALSE,
