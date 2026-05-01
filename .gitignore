@@ -7,3 +7,5 @@
 .DS_Store
 .quarto
 .DS_Store
+.RDataTmp*
+.Rproj.user/

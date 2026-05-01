@@ -80,8 +80,7 @@ p_pre <- ggplot(summary_data, aes(x = sex, y = mean, color = adapted_temp)) +
                 y = mean + se + 0.22), 
             position = position_dodge(width = 0.4), 
             color = "black", 
-            size = 7, 
-            fontface = "bold") +
+            size = 7) +
   scale_color_manual(values = c("25°C" = "cornflowerblue", "30°C" = "darkorange", "35°C" = "brown3"), 
                      name = "Adapted temperature") +
   scale_x_discrete(labels = c("f" = "Female", "m" = "Male")) +
@@ -185,7 +184,7 @@ summary_data2 <- summary_data2 %>%
   arrange(sex, heatwave, adapted_temp)
 
 # Add letters denoting Tukey test results
-summary_data2$plotting_labels <- c("a", "ab", "b", "a", "a", "b", "a", "a", "a", "a", "ab", "b")
+summary_data2$plotting_labels <- c("a", "ab", "b", "a", "a", "a", "a", "a", "b", "a", "ab", "b")
 
 # Generate plot
 p_post <- ggplot(summary_data2, aes(x = x_pos, y = mean, 
@@ -203,8 +202,7 @@ p_post <- ggplot(summary_data2, aes(x = x_pos, y = mean,
                 y = mean + se + 0.2),
             position = position_dodge(width = 0.4),
             color = "black",
-            size = 6,
-            fontface = "bold") +
+            size = 6) +
   scale_color_manual(
     values = c("25°C" = "cornflowerblue", "30°C" = "darkorange", "35°C" = "brown3"),
     name = "Adapted temperature")+
@@ -313,8 +311,7 @@ f_p <- ggplot(f_summary_data, aes(x = x_pos_f, y = mean, color = adapted_temp, s
                 y = mean + se + 5.8),
             position = position_dodge(width = 0.5),
             color = "black",
-            size = 7,
-            fontface = "bold") +
+            size = 7) +
   scale_color_manual(
     values = c("25°C" = "cornflowerblue", "30°C" = "darkorange", "35°C" = "brown3"),   
     name = "Adapted temperature")+
@@ -364,6 +361,6 @@ bottom_row <- plot_grid(f_p_noleg, legend_centered, labels = c("C", ""),
 combined <- plot_grid(top_row, bottom_row, ncol = 1, rel_heights = c(1, 1))
 
 # Save plot
-ggsave(filename = "./figures/fecundityandbodysize.pdf",
+ggsave(filename = "./figures/traits.pdf",
          plot = combined, width = 30, height = 30, units = "cm", dpi = 300)
 
