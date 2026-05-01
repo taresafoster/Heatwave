@@ -95,7 +95,7 @@ p_m2w <- ggplot(male_2weeks, aes(x = weight_mg, y = survival_twoweeks_binomial))
 # Generate a combined plot
 combined_2w <- plot_grid(p_f2w, p_m2w,
                       ncol = 2, align = "hv", axis = "tb")
-
+ 
 # Save the combined plot
 ggsave(filename = "./figures/bodysizesurvival_2w.pdf",
        plot = combined_2w, width = 35, height = 19, units = "cm", dpi = 300)

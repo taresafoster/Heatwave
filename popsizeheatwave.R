@@ -17,7 +17,7 @@ theme_tess <- function () {
     theme(plot.title = element_text(hjust = 0.5,size=20))+
     theme(axis.title.y=element_text(size=20))
 }
-
+ 
 # Import data
 data <-read.csv("./data/heatwavepopulation.csv",stringsAsFactors = FALSE,
                 strip.white = TRUE, na.strings = c("NA",""))
